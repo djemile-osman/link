@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible"content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+		
+	<title>X&O</title>
+	<script src="https://code.jquery.com/jquery-3.6.4.min.js" integrity="sha256-oP6HI9z1XaZNBrJURtCoUT5SUnxFr8s3BzRl+cbzUq8=" crossorigin="anonymous"></script>
+	
+	<style>
+	html {
+        height:100%;/*показва стр на 100%*/
+        }
+	body {
+		height:100%; /*показва стр на 100%*/
+        background-color:#291236;
+	    color: #fff;		display:flex;/*за центриране*/
+		justify-content:center;/*за центриране*/
+		align-items:center;		/*за центриране*/	
+	}
+	.p-2 { 
+        padding:20px; /*за отстъп*/
+    }
+	.nc-row {
+			width:420px;
+			display:flex;
+			justify-content:center;
+			align-items:center;
+		}
+		.nc-col {
+			width:140px;
+			height:140px;
+			font-size: 50px;
+			display:flex;
+			justify-content:center;
+			align-items:center;		
+			cursor:pointer;
+		}
+		
+		.nc-hmiddle {
+			border-left: solid 5px #fff;
+			border-right: solid 5px #fff;
+		}
+		
+		.nc-vmiddle {
+			border-top: solid 5px #fff;
+			border-bottom: solid 5px #fff;
+		}	
+	
+	.btn{
+		border: none;/*без линия*/
+		margin: 10px;/*за отстъп*/
+		padding: 25px;/*за отстъп*/
+		width: 220px;
+		font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;/*задва стил на шрифта*/
+		text-transform: capitalize;
+		border-radius: 10px;/*оформяне на бутона за new game*/
+		cursor: pointer;
+		color: #2e0844;
+		background-size: 200%;
+		background-color: #d2ade5;
+		transition: 0.5s;
+	}
+	.btn:hover{
+		color: #2e0844;
+		background-color: #fff;
+		border: 1px solid #0b0c0b;
+	}
+	.p-2{
+		border: none;
+		margin: 20px;
+		padding: 25px;
+		width: 300px;
+		text-transform: capitalize;
+		border-radius: 10px;
+		cursor: pointer;
+		color: #e4d3ed;
+		background-size: 200%;
+		display:flex;
+		justify-content:center;
+		align-items:center;	
+	}
+
+
+</style>
+
+</head> 
+	
+<body>
+
+	<div class="container">
+		<div class="p-2" id="score_board">
+			Score: Draw = 0, Player = 0, AI = 0
+		</div>
+		<div id="nc-board">
+		
+			<div class="nc-row">
+				
+				<div class="nc-col " id="0"></div>
+				<div class="nc-col nc-hmiddle" id="1"></div>
+				<div class="nc-col" id="2"></div>			
+			</div>
+			
+			<div class="nc-row">
+				<div class="nc-col nc-vmiddle" id="3"></div>
+				<div class="nc-col nc-hmiddle nc-vmiddle" id="4"></div>
+				<div class="nc-col nc-vmiddle" id="5"></div>		
+			</div>
+			
+			<div class="nc-row">
+				<div class="nc-col" id="6"></div>
+				<div class="nc-col nc-hmiddle" id="7"></div>
+				<div class="nc-col" id="8"></div>		
+			</div>
+		</div>
+		<div class="p-2">
+			<div class="text"></div>
+			<button class="btn" id="nc-newgame" onclick="startGame();"  >New Game</button>
+		</div>		
+    
+	</div>
+	
+	<script>
+	var origBoard;
+    const huPlayer = 'O';
+    const aiPlayer = 'X';
+    const winCombos = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [6, 4, 2]
+]
+
+
+function set_cookie(c_name, value, expiredays) {
+			var exdate = new Date();
+			exdate.setDate(exdate.getDate() + expiredays);
+			if(typeof localStorage != "undefined") {
+				localStorage.setItem(c_name, value);
+			} else {
+				document.cookie = c_name + "=" + escape(value) +
+				((expiredays === null) ? "" : ";expires=" + exdate.toUTCString());
+			}
+		}	
+		
+		function get_cookie(c_name) {
+			if (typeof localStorage != "undefined") {
+				return localStorage.getItem(c_name);
+			} else {
+				var c_start = document.cookie.indexOf(c_name + "=");
+				if (document.cookie.length > 0) {
+					if (c_start !== -1) {
+						return getCookieSubstring(c_start, c_name);
+					}
+				}
+				return "";
+			}
+		}	
+
+        function refreshScores() {
+			$('#score_board').get(0).innerHTML = 'Score: Draw = '+score[2]+', Player = '+score[1]+', AI = '+score[0];
+		}
+				
+		var score = [0,0,0];
+		var cookie = get_cookie('nc-scores');
+		if ((cookie == null) || (cookie == "")) score = [0,0,0];
+		else score = JSON.parse(cookie);
+		
+		refreshScores();
+		var finished = false;
+        
+const cells = document.querySelectorAll('.nc-col');
+startGame();
+
+function startGame() {
+    document.querySelector(".p-2");
+    origBoard = Array.from(Array(9).keys());
+    for (var i = 0; i < cells.length; i++) {
+        cells[i].innerText = '';
+        cells[i].style.removeProperty('background-color');
+        cells[i].addEventListener('click', turnClick, false);
+    }
+}
+
+function turnClick(square) {
+    if (typeof origBoard[square.target.id] == 'number') {
+        turn(square.target.id, huPlayer)
+        if (!checkWin(origBoard, huPlayer) && !checkTie()) turn(bestSpot(), aiPlayer);
+    }
+}
+
+function turn(squareId, player) {
+    origBoard[squareId] = player;
+    document.getElementById(squareId).innerText = player;
+    let gameWon = checkWin(origBoard, player)
+    if (gameWon) gameOver(gameWon)
+}
+
+function checkWin(board, player) {
+    let plays = board.reduce((a, e, i) =>
+        (e === player) ? a.concat(i) : a, []);
+    let gameWon = null;
+    for (let [index, win] of winCombos.entries()) {
+        if (win.every(elem => plays.indexOf(elem) > -1)) {
+            gameWon = { index: index, player: player };
+            break;
+        }
+    }
+    return gameWon;
+}
+
+
+
+function gameOver(gameWon) {
+    for (let index of winCombos[gameWon.index]) {
+        document.getElementById(index).style.backgroundColor =
+            gameWon.player == huPlayer ? "blue" : "red";
+    }
+    for (var i = 0; i < cells.length; i++) {
+        cells[i].removeEventListener('click', turnClick, false);
+    }
+    finished = true;
+	score[gameWon.index]++;
+			
+	refreshScores();
+			
+    $('#nc-newgame').get(0).disabled = false;
+			
+	set_cookie('nc-scores', JSON.stringify(score), 7*4); 
+}
+
+
+
+function declareWinner(who) {
+    document.querySelector(".p-2").style.display = "block";
+    document.querySelector(".p-2 .text").innerText = who;
+}
+
+function emptySquares() {
+    return origBoard.filter(s => typeof s == 'number');
+}
+
+function bestSpot() {
+    return minimax(origBoard, aiPlayer).index;
+}
+
+function checkTie() {
+    if (emptySquares().length == 0) {
+        for (var i = 0; i < cells.length; i++) {
+            cells[i].style.backgroundColor = "yellow";
+            cells[i].removeEventListener('click', turnClick, false);
+        }
+        return true;
+    }
+    return false;
+}
+
+function minimax(newBoard, player) {
+    var availSpots = emptySquares();
+
+    if (checkWin(newBoard, huPlayer)) {
+        return { score: -10 };
+    } else if (checkWin(newBoard, aiPlayer)) {
+        return { score: 10 };
+    } else if (availSpots.length === 0) {
+        return { score: 0 };
+    }
+    var moves = [];
+    for (var i = 0; i < availSpots.length; i++) {
+        var move = {};
+        move.index = newBoard[availSpots[i]];
+        newBoard[availSpots[i]] = player;
+
+        if (player == aiPlayer) {
+            var result = minimax(newBoard, huPlayer);
+            move.score = result.score;
+        } else {
+            var result = minimax(newBoard, aiPlayer);
+            move.score = result.score;
+        }
+
+        newBoard[availSpots[i]] = move.index;
+
+        moves.push(move);
+    }
+
+    var bestMove;
+    if (player === aiPlayer) {
+        var bestScore = -10000;
+        for (var i = 0; i < moves.length; i++) {
+            if (moves[i].score > bestScore) {
+                bestScore = moves[i].score;
+                bestMove = i;
+            }
+        }
+    } else {
+        var bestScore = 10000;
+        for (var i = 0; i < moves.length; i++) {
+            if (moves[i].score < bestScore) {
+                bestScore = moves[i].score;
+                bestMove = i;
+            }
+        }
+    }
+
+    return moves[bestMove];
+}
+	</script>	
+</body>
+</html>
